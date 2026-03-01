@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+  url      = env("DATABASE_URL")
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String       @id @default(uuid())
+  username         String       @unique
+  passwordHash     String
+  role             String       @default("lawyer")
+  createdAt        DateTime     @default(now())
+  cases            Case[]
+  caseLawyers      CaseLawyer[]
+  internAccesses   CaseAccess[] @relation("InternAccessUser")
+  grantedAccesses  CaseAccess[] @relation("GrantedByUser")
+}
+
+model Client {
+  id              String   @id @default(uuid())
+  name            String
+  email           String   @unique
+  phone           String?
+  address         String?  @db.Text
+  idNumber        String?
+  eDevletPassword String?
+  createdAt       DateTime @default(now())
+  cases           Case[]
+  caseClients     CaseClient[]
+}
+
+model Case {
+  id              String           @id @default(uuid())
+  title           String
+  clientId        String
+  lawyerId        String
+  status          String           @default("open")
+  deadline        DateTime?
+  opposition      String?
+  oppositionLawyer String?
+  createdAt       DateTime         @default(now())
+  client          Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lawyer          User             @relation(fields: [lawyerId], references: [id])
+  caseClients     CaseClient[]
+  caseLawyers     CaseLawyer[]
+  documents       Document[]
+  logs            InteractionLog[]
+  fees            CaseFee?
+  payments        Payment[]
+  internAccesses  CaseAccess[]
+
+  @@index([clientId])
+  @@index([lawyerId])
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  caseId    String
+  title     String
+  content   String?  @db.Text
+  fileUrl   String?
+  fileName  String?
+  fileType  String?
+  createdAt DateTime @default(now())
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+}
+
+model InteractionLog {
+  id        String   @id @default(uuid())
+  caseId    String
+  note      String   @db.Text
+  timestamp DateTime @default(now())
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+}
+
+model CaseFee {
+  id            String  @id @default(uuid())
+  caseId        String  @unique
+  totalFee      Float
+  amountPaid    Float   @default(0)
+  paymentStatus String  @default("pending")
+  case          Case    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  caseId      String
+  amount      Float
+  paymentDate DateTime @default(now())
+  method      String
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+}
+
+model Template {
+  id        String   @id @default(uuid())
+  title     String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model CaseAccess {
+  id                 String   @id @default(uuid())
+  caseId             String
+  internId           String
+  grantedById        String
+  canViewDocuments   Boolean  @default(true)
+  canUploadDocuments Boolean  @default(false)
+  canViewLogs        Boolean  @default(true)
+  canAddLogs         Boolean  @default(false)
+  canViewPayments    Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  case      Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  intern    User   @relation("InternAccessUser", fields: [internId], references: [id], onDelete: Cascade)
+  grantedBy User   @relation("GrantedByUser", fields: [grantedById], references: [id])
+
+  @@unique([caseId, internId])
+}
+
+model CaseClient {
+  caseId   String
+  clientId String
+  case     Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@id([caseId, clientId])
+}
+
+model CaseLawyer {
+  caseId   String
+  lawyerId String
+  case     Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  lawyer   User @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+
+  @@id([caseId, lawyerId])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  permissions Json     @default("{}")
+  createdAt   DateTime @default(now())
+}
