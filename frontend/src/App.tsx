@@ -19,8 +19,16 @@ useEffect(() => {
 const token = localStorage.getItem('token');
 const userData = localStorage.getItem('user');
 if (token && userData) {
-  setIsAuthenticated(true);
-  setUser(JSON.parse(userData));
+  try {
+    const parsedUser = JSON.parse(userData);
+    setIsAuthenticated(true);
+    setUser(parsedUser);
+  } catch (_error) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+    setUser(null);
+  }
 }
 }, []);
 const handleLogin = (token, userData) => {
