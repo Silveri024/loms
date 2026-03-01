@@ -17,7 +17,15 @@ function Login({ onLogin }) {
       const data = await login(username, password);
       onLogin(data.token, data.user);
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+      const status = err?.response?.status;
+      const backendMessage = err?.response?.data?.error;
+      if (!err?.response) {
+        setError('Cannot reach server. Configure VITE_API_URL to your deployed backend /api URL and redeploy.');
+      } else if (status === 401) {
+        setError(backendMessage || 'Invalid credentials');
+      } else {
+        setError(backendMessage || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

@@ -32,6 +32,14 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Validate required API URL
+        run: |
+          if [ -z "${{ vars.VITE_API_URL }}" ]; then
+            echo "Missing repository variable VITE_API_URL"
+            echo "Set it to your backend URL, e.g. https://your-backend.example.com/api"
+            exit 1
+          fi
+
       - name: Build
         working-directory: frontend
         run: npm run build
